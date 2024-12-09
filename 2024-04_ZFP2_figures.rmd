@@ -1,0 +1,2732 @@
+---
+title: "ZFP2 Figures"
+author: "Leonard Blaschek"
+date: "2024-12-09"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  warning = FALSE, message = FALSE
+)
+library(signs)
+library(readxl)
+library(showtext)
+library(tidyverse)
+library(ggtext)
+library(ggbeeswarm)
+library(patchwork)
+library(tukeygrps)
+
+#### import Myriad ####
+font_add(
+  "Myriad",
+  regular = "MyriadPro-Regular.otf",
+  italic = "MyriadPro-It.otf",
+  bold = "MyriadPro-Bold.otf",
+  bolditalic = "MyriadPro-BoldIt.otf"
+)
+showtext_auto()
+showtext_opts(dpi = 300)
+
+#### generating plot theme ####
+
+text_size <- 6
+
+#### generating plot theme ####
+theme_leo <- function(base_size = text_size,
+                      base_family = "Myriad") {
+  theme_minimal(
+    base_size = base_size,
+    base_family = base_family
+  ) %+replace%
+    theme(
+      strip.text = element_markdown(),
+      axis.ticks = element_line(
+        linewidth = 0.4,
+        colour = "black",
+        lineend = "square"
+      ),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_markdown(
+        colour = "black",
+        margin = margin(1, 1, 1, 1),
+        size = text_size
+      ),
+      axis.text.y = element_markdown(
+        colour = "black",
+        angle = 0,
+        vjust = 0.5,
+        hjust = 1,
+        margin = margin(1, 1, 1, 1),
+        size = text_size
+      ),
+      axis.title.x = element_blank(),
+      axis.title.y = element_markdown(
+        angle = 90
+      ),
+      axis.line = element_line(
+        linewidth = 0.4,
+        colour = "black",
+        lineend = "square"
+      ),
+      plot.title = element_text(size = text_size * 1.2, hjust = 0.5),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.spacing = unit(1.5, "mm"),
+      legend.position = "none",
+      legend.text = element_text(size = rel(1)),
+      legend.key.height = unit(4, "mm"),
+      complete = TRUE
+    )
+}
+
+# convenience figure size functions
+ggtext_size <- text_size / (14 / 5)
+cm_size <- function(x) x / 2.54
+twocol <- 18.4 / 2.54
+onehalfcol <- 14.4 / 2.54
+onecol <- 9 / 2.54
+
+flat_zero <- function(l) {
+  if (str_detect(paste(l, collapse = ";"), "\\.")) {
+    max.decimals <- max(nchar(str_extract(l, "\\.[0-9]+")), na.rm = T) - 1
+  } else {
+    max.decimals <- 0
+  }
+  lnew <- formatC(l,
+    replace.zero = T, zero.print = "0",
+    digits = max.decimals, format = "f", preserve.width = T
+  )
+  return(lnew)
+}
+
+path <- ("/data/2023_zfp2/")
+
+pal_ostwald_disc <- c(
+  "#275d95",
+  "#e8c245",
+  "#d25952"
+)
+
+pal_pedersen_disc <- c(
+  "#264653",
+  "#2a9d8f",
+  "#e9c46a",
+  "#f4a261",
+  "#e76f51"
+)
+
+pal_dawn <- c(
+  "#434c52ff",
+  "#46636fff",
+  "#6088a0ff",
+  "#ab6c82ff",
+  "#d8737fff",
+  "#eaa05fff",
+  "#ffd175ff"
+)
+
+pal_zfp <- c(
+  "#6088a0",
+  "#d25952",
+  "#a8322c",
+  "#75241e"
+)
+
+pal_nst <- c(
+  "#6088a0",
+  "#a8322c",
+  "#e8ca69",
+  "#de9053"
+)
+
+gts <- c("WT", "<i>zfp2-1</i>", "<i>zfp2-2</i>", "<i>zfp2-3</i>")
+```
+
+# Seed phenotype
+
+## Silique length
+
+### Load data
+
+```{r}
+sil_length <- read_xlsx(
+  "ZFP_data.xlsx",
+  1
+) |>
+  fill(genotype) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    ),
+    length_mm = length_cm * 10
+  )
+
+sil_length_summary <- sil_length |>
+  group_by(genotype) |>
+  tally()
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  sil_length,
+  length_mm,
+  genotype,
+  "tukey",
+  print_position = "above"
+)
+
+sil_length_plot <- ggplot(
+  sil_length,
+  aes(
+    x = genotype,
+    y = length_mm,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  geom_violin(colour = NA) +
+  geom_boxplot(
+    width = 0.1,
+    fatten = 1,
+    colour = "black",
+    fill = "white",
+    outliers = FALSE
+  ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Silique length (mm)") +
+  theme_leo()
+
+sil_length_plot
+```
+
+## Fatty acid content
+
+### Main
+
+#### Load data
+
+```{r}
+seed_oil <- read_xlsx(
+  "ZFP_data.xlsx",
+  2
+) |>
+  fill(genotype) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+```
+
+#### Plot data
+
+```{r}
+letters <- letter_groups(
+  seed_oil,
+  FA_ug_seed,
+  genotype,
+  "tukey",
+  print_position = "above"
+)
+
+seed_oil_plot <- ggplot(
+  seed_oil,
+  aes(
+    x = genotype,
+    y = FA_ug_seed,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21
+  ) +
+  stat_summary(
+    geom = "crossbar",
+    fun = "median",
+    fatten = 1
+  ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Fatty acid content (µg seed<sup>−1</sup>)") +
+  theme_leo()
+
+seed_oil_plot
+```
+
+### Supplement
+
+#### Load data
+
+```{r}
+fa_timeline <- read_xlsx(
+  "ZFP_data.xlsx",
+  17
+) |>
+  fill(genotype, DAP) |>
+  mutate(genotype = ordered(
+    case_when(
+      genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+      TRUE ~ genotype
+    ),
+    levels = gts
+  ))
+```
+
+#### Plot data
+
+```{r}
+max <- fa_timeline |>
+  group_by(DAP) |>
+  summarise(ug_seed = max(ug_seed) * 1.1)
+
+pvals <- fa_timeline |>
+  split(fa_timeline$DAP) |>
+  map(\(df) t.test(ug_seed ~ genotype, data = df)) |>
+  map_dfr("p.value") |>
+  pivot_longer(
+    everything(),
+    names_to = "DAP",
+    values_to = "value"
+  ) |>
+  mutate(
+    code = case_when(
+      value < 0.001 ~ "***",
+      value < 0.01 ~ "**",
+      value < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    DAP = as.numeric(DAP)
+  ) |>
+  left_join(max)
+
+
+fa_timeline_plot <- ggplot(
+  fa_timeline,
+  aes(
+    x = DAP,
+    y = ug_seed,
+    group = genotype
+  )
+) +
+  stat_summary(
+    geom = "line",
+    fun = "median"
+  ) +
+  stat_summary(
+    geom = "point",
+    fun = "median",
+    aes(fill = genotype),
+    shape = 21,
+    colour = "black",
+    size = 2
+  ) +
+  geom_quasirandom(
+    aes(fill = genotype),
+    shape = 21,
+    colour = "white",
+    size = 0.75,
+    stroke = 0.2,
+    width = 0.1
+  ) +
+  geom_text(
+    data = pvals,
+    aes(label = code, group = NULL),
+    family = "Myriad",
+    size = ggtext_size * 1.3
+  ) +
+  labs(
+    y = "Fatty acid content (µg seed<sup>−1</sup>)",
+    x = "Days after pollination (DAP)"
+  ) +
+  scale_colour_manual(
+    values = pal_zfp[c(1, 3)],
+    aesthetics = c("fill", "colour"),
+    guide = guide_legend(override.aes = list(shape = 21, colour = NA))
+  ) +
+  scale_x_continuous(breaks = c(7, 11, 15, 19)) +
+  theme_leo() +
+  theme(
+    axis.title.x = element_markdown(),
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    legend.position = c(0, 1),
+    legend.justification = c(0, 1),
+    legend.title = element_blank(),
+    legend.text = element_markdown(size = text_size)
+  )
+```
+
+
+## Seed weight
+
+### Load data
+
+```{r}
+seed_weight <- read_xlsx(
+  "ZFP_data.xlsx",
+  3
+) |>
+  fill(genotype) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  seed_weight,
+  weight_ug,
+  genotype,
+  "tukey",
+  print_position = "above"
+)
+
+seed_weight_plot <- ggplot(
+  seed_weight,
+  aes(
+    x = genotype,
+    y = weight_ug,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21
+  ) +
+  stat_summary(
+    geom = "crossbar",
+    fun = "median",
+    fatten = 1
+  ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Seed weight (µg)") +
+  theme_leo()
+
+seed_weight_plot
+```
+
+## Seed count
+
+### Load data
+
+```{r}
+seed_count <- read_xlsx(
+  "ZFP_data.xlsx",
+  13
+) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  seed_count,
+  count,
+  genotype,
+  "tukey",
+  print_position = "above"
+)
+
+seed_count_plot <- ggplot(
+  seed_count,
+  aes(
+    x = genotype,
+    y = count,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median"
+  ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21
+  ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median",
+  #   fatten = 1
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Seeds per silique") +
+  theme_leo()
+
+seed_count_plot
+```
+
+## Seed dimensions
+
+### Load data
+
+```{r}
+seed_dims <- read_xlsx(
+  "ZFP_data.xlsx",
+  4
+) |>
+  fill(variable) |>
+  pivot_longer(
+    -variable,
+    names_to = "genotype",
+    values_to = "value"
+  ) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+
+seed_dims_summary <- seed_dims |>
+  group_by(genotype, variable) |>
+  tally()
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  seed_dims,
+  value,
+  genotype,
+  "tukey",
+  variable,
+  print_position = "above"
+)
+
+seed_dim_plot <- ggplot(
+  seed_dims,
+  aes(
+    x = genotype,
+    y = value,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  geom_violin(colour = NA) +
+  geom_boxplot(
+    width = 0.1,
+    fatten = 1,
+    colour = "black",
+    fill = "white",
+    outliers = FALSE
+  ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme_leo() +
+  theme(
+    axis.title.y = element_blank(),
+    strip.placement = "outside"
+  ) +
+  facet_wrap(~variable, switch = "y", scales = "free")
+
+seed_dim_plot
+```
+
+## Glucosinolates
+
+### Load data
+
+```{r}
+gluc_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  9
+) |>
+  rename("Indole glucosinolates" = "Indole GLS") |>
+  mutate(
+    tissue = case_when(
+      str_detect(tissue, "septum") ~ "1 silique without seeds",
+      str_detect(tissue, "10") ~ "10 seeds from one silique",
+      TRUE ~ tissue
+    )
+  ) |>
+  pivot_longer(c(3:5), names_to = "metabolite", values_to = "nmol") |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    ),
+    metabolite = str_replace(metabolite, "-", "–")
+  )
+
+gluc_summary <- gluc_data |>
+  group_by(tissue, metabolite, genotype) |>
+  summarise(median = median(nmol)) |>
+  mutate(
+    fold_change = median / median[genotype == "WT"],
+    perc_reduction = (median - median[genotype == "WT"]) / median[genotype == "WT"] * 100
+  )
+```
+
+### Plot data
+
+```{r}
+gluc_plot <- function(m, t) {
+  data <- gluc_data |>
+    filter(metabolite == m &
+      tissue == t) |>
+    mutate(nmol = case_when(
+      tissue == "10 seeds from one silique" ~ nmol / 10,
+      TRUE ~ nmol
+    ))
+
+  letters <- letter_groups(
+    data,
+    nmol,
+    genotype,
+    "tukey",
+    print_position = "above",
+    print_adjust = 1.5
+  )
+
+  ggplot(
+    data,
+    aes(
+      x = genotype,
+      y = nmol,
+      fill = genotype
+    )
+  ) +
+    ## Bar with points
+    # stat_summary(
+    #   geom = "bar",
+    #   fun = "median"
+    # ) +
+    # geom_quasirandom(
+    # ) +
+    ## Violin and boxplots
+    # geom_violin(colour = NA) +
+    # geom_boxplot(
+    #   width = 0.1,
+    #   colour = "black",
+    #   fill = "white",
+    #   outliers = FALSE
+    # ) +
+    ## Points with crossbar
+    geom_quasirandom(
+      colour = "white",
+      shape = 21
+    ) +
+    stat_summary(
+      geom = "crossbar",
+      fun = "median",
+      fatten = 1
+    ) +
+    geom_text(
+      data = letters,
+      aes(label = Letters),
+      family = "Myriad",
+      size = ggtext_size
+    ) +
+    scale_fill_manual(values = pal_zfp) +
+    # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    theme_leo()
+}
+
+gluc_plot("Long chain aliphatic glucosinolates (C6–C8)", "10 seeds from one silique") + labs(y = "Long chain glucosinolates (nmol seed<sup>−1</sup>)")
+```
+
+### Plot supplement
+
+```{r}
+data <- gluc_data
+
+letters <- letter_groups(
+  data,
+  nmol,
+  genotype,
+  "tukey",
+  tissue,
+  metabolite,
+  print_position = "above",
+  print_adjust = 1.5
+)
+
+gluc_supp <- ggplot(
+  data,
+  aes(
+    x = genotype,
+    y = nmol,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  # ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21
+  ) +
+  stat_summary(
+    geom = "crossbar",
+    fun = "median",
+    fatten = 1
+  ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  scale_y_continuous(labels = flat_zero) +
+  labs(y = "Glucosinolate content (nmol sample <sup>−1</sup>)") +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme_leo() +
+  theme(
+    strip.text = element_markdown(hjust = 0)
+  ) +
+  facet_wrap(
+    metabolite ~ tissue,
+    scales = "free"
+  )
+```
+
+# Expression
+
+## RNAseq
+
+### Load data
+
+```{r}
+rna_seq <- read_xlsx(
+  "ZFP_data.xlsx",
+  20
+) |>
+  drop_na(padj) |>
+  mutate(gene = str_remove(transcript, "\\.[:digit:]"))
+
+rna_seq_raw <- read_xlsx(
+  "ZFP_data.xlsx",
+  21
+) |> 
+  filter(variable == "TPM")
+
+sig_loci <- rna_seq |>
+  filter(log2FC >= 1 & padj < 0.05) |>
+  pull(transcript) |>
+  unique() |>
+  str_remove("\\.[:digit:]")
+```
+
+### PCA
+
+#### Calculate
+
+```{r}
+
+## 0 to NA
+# pca_data <- rna_seq_raw |>
+#   select(-variable) |>
+#   mutate(across(where(is.numeric), \(x) na_if(x, 0))) |>
+#   drop_na() |>
+#   pivot_longer(2:7, names_to = "sample", values_to = "value") |>
+#   group_by(sample) |>
+#   mutate(value = scale(value, center = TRUE, scale = TRUE)) |>
+#   separate_wider_delim(sample, names = c("genotype", "replicate"), delim = "_") |>
+#   pivot_wider(names_from = GeneID, values_from = value)
+
+## keep 0
+pca_data <- rna_seq_raw |>
+  select(-variable) |>
+  pivot_longer(2:7, names_to = "sample", values_to = "value") |>
+  group_by(sample) |>
+  mutate(value = scale(value, center = TRUE, scale = TRUE)) |>
+  separate_wider_delim(sample, names = c("genotype", "replicate"), delim = "_") |>
+  pivot_wider(names_from = GeneID, values_from = value)
+
+pca <- pca_data |> 
+  select(where(is.numeric)) |> 
+  prcomp(center = TRUE, scale. = FALSE)
+```
+
+
+#### Plot
+
+```{r}
+gg_pca <- broom::augment(pca, pca_data)
+gg_pcs <- broom::tidy(pca, matrix = "d")
+pcs <- gg_pcs |>
+  slice_head(n = 2) |>
+  mutate(percent = percent * 100) |>
+  pull(percent) |>
+  round(digits = 0)
+
+pca_plot <- ggplot(
+  gg_pca,
+  aes(x = .fittedPC1, y = .fittedPC2, fill = genotype)
+) +
+  geom_point(
+    shape = 21,
+    size = 3,
+    stroke = 0.4
+  ) +
+  ggforce::geom_mark_ellipse(
+    data = filter(gg_pca, genotype == "zfp2-2"),
+    aes(label = genotype),
+    label.family = "Myriad",
+    expand = unit(2, "mm"),
+    radius = unit(2, "mm"),
+    label.colour = "black",
+    label.fontsize = text_size,
+    label.fontface = "italic",
+    label.fill = rgb(1, 1, 1, 0.5),
+    label.buffer = unit(0, "mm"),
+    label.margin = margin(0.5, 0.5, 0.5, 0.5, "mm"),
+    con.colour = "black",
+    con.type = "straight",
+    con.size = 0.3,
+    con.cap = unit(0, "mm")
+  ) +
+  ggforce::geom_mark_ellipse(
+    data = filter(gg_pca, genotype != "zfp2-2"),
+    aes(label = genotype),
+    label.family = "Myriad",
+    expand = unit(2, "mm"),
+    radius = unit(2, "mm"),
+    label.colour = "black",
+    label.fontsize = text_size,
+    label.fontface = "plain",
+    label.fill = rgb(1, 1, 1, 0.5),
+    label.buffer = unit(0, "mm"),
+    label.margin = margin(0.5, 0.5, 0.5, 0.5, "mm"),
+    con.colour = "black",
+    con.type = "straight",
+    con.size = 0.3,
+    con.cap = unit(0, "mm")
+  ) +
+  scale_y_continuous(expand = expansion(mult = 0.25)) +
+  scale_x_continuous(expand = expansion(mult = 0.25)) +
+  scale_fill_manual(values = pal_zfp[c(1, 3)]) +
+  coord_cartesian(xlim = c(-40, 40), ylim = c(-40, 40), expand = FALSE) +
+  labs(
+    x = paste0("PC1 (", pcs[1], "%)"),
+    y = paste0("PC2 (", pcs[2], "%)")
+  ) +
+  theme_leo() +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_markdown(),
+    axis.ticks.x = element_line(
+        linewidth = 0.4,
+        colour = "black",
+        lineend = "square"
+      )
+  )
+
+pca_plot
+```
+
+
+### GO enrichment
+
+#### Calculate
+
+```{r}
+zfp2_go_full <- clusterProfiler::enrichGO(
+  gene = sig_loci,
+  OrgDb = "org.At.tair.db",
+  keyType = "TAIR",
+  ont = "BP",
+  pvalueCutoff = 0.01,
+) |>
+  clusterProfiler::simplify()
+```
+
+#### Plot
+
+```{r}
+zfp2_go <- zfp2_go_full@result |>
+  mutate(
+    GeneProp = Count / 136,
+    Recall = Count / as.numeric(str_extract(BgRatio, "^[:digit:]+")),
+    label = paste0(Description, "<br>(", ID, ")"),
+    label = case_when(
+      str_detect(
+        label,
+        str_c(c("GO:0009699", "GO:0009834", "GO:0009698", "GO:0071669", "GO:0010410"), collapse = "|")
+      ) ~
+        paste0("<b style='color:", pal_pedersen_disc[2], "'>", label, "</b>"),
+      TRUE ~ label
+    ),
+    label = ordered(label, levels = label)
+  )
+
+
+go_enrich_plot <- ggplot(
+  zfp2_go,
+  aes(x = label, y = Recall)
+) +
+  geom_col(
+    width = 0.1,
+    fill = "black"
+  ) +
+  geom_point(
+    aes(size = Count, fill = p.adjust),
+    shape = 21,
+    stroke = 0.4
+  ) +
+  scale_size(
+    range = c(3, 7),
+    breaks = c(8, 12),
+    guide = guide_legend(
+      direction = "horizontal",
+      title.position = "top"
+    )
+  ) +
+  scale_fill_distiller(
+    name = "Adjusted *P*",
+    palette = "Reds",
+    breaks = c(0.001, 0.005),
+    guide = guide_colorbar(
+      direction = "horizontal",
+      title.position = "top"
+    )
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), labels = flat_zero) +
+  labs(y = "Recall") +
+  theme_leo() +
+  theme(
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    axis.title.y = element_blank(),
+    axis.title.x = element_markdown(),
+    legend.title = element_markdown(lineheight = 0.7),
+    # legend.position = "bottom",
+    legend.key.height = unit(2.5, "mm"),
+    legend.key.width = unit(2.5, "mm"),
+    legend.position = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.spacing = unit(1, "mm"),
+    legend.box.just = "left",
+    legend.key.spacing = unit(1, "mm"),
+    legend.box.spacing = unit(1, "mm")
+  ) +
+  coord_flip()
+
+go_enrich_plot
+```
+
+
+### Volcano plot
+
+```{r}
+zfp2_scw <- zfp2_go |>
+  filter(ID %in% c("GO:0009699", "GO:0009834", "GO:0009698", "GO:0071669", "GO:0010410")) |>
+  pull(geneID) |>
+  str_split("/") |>
+  unlist() |>
+  unique()
+
+focus <- rna_seq |>
+  filter(gene %in% zfp2_scw)
+
+sig <- rna_seq |>
+  filter(gene %in% sig_loci) |>
+  anti_join(focus)
+
+bg <- rna_seq |>
+  anti_join(focus) |>
+  anti_join(sig)
+
+volcano_plot <- ggplot(
+  bg,
+  aes(x = log2FC, y = -log10(padj))
+) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    linetype = 2,
+    linewidth = 0.4
+  ) +
+  geom_vline(
+    xintercept = c(-1, 1),
+    linetype = 2,
+    linewidth = 0.4
+  ) +
+  geom_point(
+    colour = "grey90",
+    size = 0.5
+  ) +
+  geom_point(
+    data = sig,
+    colour = "grey50",
+    size = 0.5
+  ) +
+  geom_point(
+    data = focus,
+    shape = 21,
+    size = 2,
+    colour = "white",
+    fill = pal_pedersen_disc[2]
+  ) +
+  ggrepel::geom_label_repel(
+    data = filter(focus, gene == "AT2G46770"),
+    label = "NST1",
+    family = "Helvetica",
+    fontface = 4,
+    colour = pal_pedersen_disc[2],
+    size = ggtext_size,
+    fill = rgb(1, 1, 1, 0.75),
+    nudge_x = 2,
+    nudge_y = 1,
+    label.size = NA,
+    label.padding = unit(1, "mm")
+  ) +
+  scale_y_continuous(limits = c(0, 10), oob = scales::oob_squish, labels = flat_zero) +
+  scale_x_continuous(limits = c(-6, 6), oob = scales::oob_squish, labels = flat_zero) +
+  # coord_cartesian(expand = FALSE, clip = "off") +
+  labs(
+    x = "log~2~(fold-change)",
+    y = "–log~10~(adjusted *P* value)"
+  ) +
+  theme_leo() +
+  theme(
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    axis.title.x = element_markdown(),
+    axis.title.y = element_markdown()
+  )
+
+volcano_plot
+```
+
+
+
+
+
+
+
+## ZFP2 whole plant
+
+### Load data
+
+```{r}
+expr_plant <- read_xlsx(
+  "ZFP_data.xlsx",
+  5
+) |>
+  pivot_longer(
+    everything(),
+    names_to = "organ",
+    values_to = "value"
+  ) |>
+  mutate(organ = ordered(
+    str_to_title(organ),
+    levels = c(
+      "Seedling",
+      "Shoot",
+      "Root",
+      "Leaf",
+      "Stem",
+      "Flower",
+      "Silique"
+    )
+  ))
+```
+
+### Plot data
+
+```{r}
+# letters <- letter_groups(
+#   seed_dims,
+#   value,
+#   genotype,
+#   "tukey",
+#   variable,
+#   print_position = "above"
+# )
+
+expr_plant_plot <- ggplot(
+  expr_plant,
+  aes(
+    x = organ,
+    y = value
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median",
+    fill = pal_zfp[1]
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21,
+    fill = pal_zfp[1]
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21,
+  #   fill = pal_zfp[1]
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  # geom_text(
+  #   data = letters,
+  #   aes(label = Letters),
+  #   family = "Myriad",
+  #   size = ggtext_size
+  # ) +
+  # scale_fill_manual(values = pal_zfp) +
+  labs(y = "Relative *ZFP2* expression") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme_leo()
+
+expr_plant_plot
+```
+
+## ZFP2 Silique
+
+### Load data
+
+```{r}
+expr_sil <- read_xlsx(
+  "ZFP_data.xlsx",
+  6
+) |>
+  fill(DAP) |>
+  rename("Rest" = `The rest of tissues`) |>
+  pivot_longer(
+    -DAP,
+    names_to = "organ",
+    values_to = "value"
+  ) |>
+  mutate(
+    organ = ordered(
+      str_to_title(organ),
+      levels = c(
+        "Seed",
+        "Valve",
+        "Rest"
+      )
+    ),
+    DAP = ordered(
+      paste(DAP, "DAP"),
+      levels = c(
+        "5 DAP",
+        "7 DAP",
+        "9 DAP",
+        "11 DAP",
+        "13 DAP"
+      )
+    )
+  )
+```
+
+### Plot data
+
+```{r}
+# letters <- letter_groups(
+#   seed_dims,
+#   value,
+#   genotype,
+#   "tukey",
+#   variable,
+#   print_position = "above"
+# )
+
+expr_sil_plot <- ggplot(
+  expr_sil,
+  aes(
+    x = organ,
+    y = value
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median",
+    fill = pal_zfp[1]
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21,
+    fill = pal_zfp[1]
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21,
+  #   fill = pal_zfp[1]
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  # geom_text(
+  #   data = letters,
+  #   aes(label = Letters),
+  #   family = "Myriad",
+  #   size = ggtext_size
+  # ) +
+  # scale_fill_manual(values = pal_zfp) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Relative *ZFP2* expression") +
+  theme_leo() +
+  facet_wrap(~DAP, nrow = 1)
+
+expr_sil_plot
+```
+
+## Downstream genes silique
+
+### zfp2-2
+
+#### Load data
+
+```{r}
+expr_other <- read_xlsx(
+  "ZFP_data.xlsx",
+  7
+) |>
+  fill(gene) |>
+  bind_rows(read_xlsx("ZFP_data.xlsx", 18) |>
+    fill(gene, batch) |>
+    filter(!str_detect(batch, "supp"))) |>
+  bind_rows(read_xlsx("ZFP_data.xlsx", 19) |>
+    fill(gene, batch)) |>
+  pivot_longer(
+    -c(gene, batch),
+    names_to = "genotype",
+    values_to = "value"
+  ) |>
+  filter(batch != "B") |>
+  filter(!str_detect(gene, "XTH")) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = c(gts[c(1, 3)], "<i>nst1-1</i>", "<i>zfp2-2 nst1-1</i>")
+    ),
+    gene = ordered(gene, levels = rev(c("NST1", "SND2", "MYB63", "IRX9", "IRX15", "LAC12", "LAC17", "PRX52"))),
+    category = ordered(
+      case_when(
+        gene == "NST1" ~ "SCW master switch",
+        gene %in% c("SND2", "MYB63") ~ "Downstream SCW TFs",
+        TRUE ~ "SCW formation enzymes"
+      ),
+      levels = c(
+        "SCW master switch",
+        "Downstream SCW TFs",
+        "SCW formation enzymes"
+      )
+    )
+  ) |>
+  drop_na() |>
+  arrange(gene, genotype)
+
+expr_other |>
+  group_by(gene, genotype) |>
+  summarise(
+    batches = length(unique(batch)),
+    n = n()
+  )
+```
+
+#### Plot data by category
+
+```{r}
+log_letters <- expr_other |>
+  mutate(value = log2(value)) |>
+  letter_groups(
+    value,
+    genotype,
+    "tukey",
+    gene,
+    # print_position = -0.75,
+    print_position = "above",
+    print_adjust = 0.5
+  ) |>
+  mutate(
+    value = (2^value) + 0.25,
+    genotype = ordered(
+      genotype,
+      levels = c(gts[c(1, 3)], "<i>nst1-1</i>", "<i>zfp2-2 nst1-1</i>")
+    ),
+    # gene = ordered(gene, levels = c("NST1", unique(gene)[unique(gene) != "NST1"])),
+    category = ordered(
+      case_when(
+        gene == "NST1" ~ "SCW master switch",
+        gene %in% c("SND2", "MYB63") ~ "Downstream SCW TFs",
+        TRUE ~ "SCW formation enzymes"
+      ),
+      levels = c(
+        "SCW master switch",
+        "Downstream SCW TFs",
+        "SCW formation enzymes"
+      )
+    )
+  )
+
+expr_other_split <- ggplot(
+  expr_other,
+  aes(
+    x = gene,
+    y = value,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median",
+    position = position_dodge(width = 0.9)
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21,
+    size = 1,
+    stroke = 0.3,
+    dodge.width = 0.9,
+    key_glyph = "rect"
+  ) +
+  geom_text(
+    data = log_letters,
+    aes(
+      label = Letters
+    ),
+    family = "Myriad",
+    size = ggtext_size,
+    position = position_dodge(width = 0.9)
+  ) +
+  scale_fill_manual(values = pal_nst) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    transform = "pseudo_log",
+    breaks = c(0, 1, 10, 100)
+  ) +
+  labs(y = "Relative expression") +
+  # guides(fill = guide_legend(reverse = TRUE)) +
+  theme_leo() +
+  theme(
+    axis.title.y = element_blank(),
+    axis.title.x = element_markdown(),
+    axis.text.y = element_markdown(face = "italic"),
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    axis.ticks.y = element_blank(),
+    # legend.position = c(1, 0),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_markdown(),
+    legend.justification = c(1, 0),
+    legend.key.height = unit(1.5, "mm"),
+    legend.key.width = unit(1.5, "mm")
+  ) +
+  ggforce::facet_col(vars(category), scales = "free_y", space = "free") +
+  coord_flip()
+
+expr_other_split
+```
+
+### zfp2-1
+
+#### Load data
+
+```{r}
+expr_other <- read_xlsx(
+  "ZFP_data.xlsx",
+  7
+) |>
+  fill(gene) |>
+  filter(batch == "B") |>
+  bind_rows(read_xlsx("ZFP_data.xlsx", 18) |>
+    fill(gene, batch) |>
+    filter(str_detect(batch, "supp"))) |>
+  filter(!str_detect(gene, "XTH")) |>
+  pivot_longer(
+    -c(gene, batch),
+    names_to = "genotype",
+    values_to = "value"
+  ) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts[c(1:3)]
+    ),
+    gene = ordered(gene, levels = rev(c("NST1", "SND2", "MYB63", "IRX9", "IRX15", "LAC12", "LAC17", "PRX52"))),
+    category = ordered(
+      case_when(
+        gene == "NST1" ~ "SCW master switch",
+        gene %in% c("SND2", "MYB63") ~ "Downstream SCW TFs",
+        TRUE ~ "SCW formation enzymes"
+      ),
+      levels = c(
+        "SCW master switch",
+        "Downstream SCW TFs",
+        "SCW formation enzymes"
+      )
+    )
+  ) |>
+  drop_na() |>
+  arrange(gene, genotype)
+```
+
+#### Statistics
+
+```{r, results='asis'}
+## zfp2-2 only
+segs <- expr_other |>
+  group_by(gene, category) |>
+  summarise(
+    min = max(value[genotype == "WT"]),
+    max = max(value[genotype != "WT"])
+  )
+## Check homoscedascity
+f_test <- expr_other |>
+  split(expr_other$gene) |>
+  map(\(df) fligner.test(value ~ genotype, data = df)) |>
+  map_dfr("p.value") |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 5)))
+
+tinytable::tt(f_test, caption = "Fligner-Killeen-test *P*-values.")
+
+## Two batches, Welch's test, missing random effect
+pvals <- expr_other |>
+  split(expr_other$gene) |>
+  map(\(df) t.test(value ~ genotype, data = df)) |>
+  # map(\(df) lm(value ~ genotype, data = df)) |>
+  # map(summary)
+  map_dfr("p.value") |>
+  pivot_longer(
+    everything(),
+    names_to = "gene",
+    values_to = "value"
+  ) |>
+  mutate(
+    code = case_when(
+      value < 0.001 ~ "***",
+      value < 0.01 ~ "**",
+      value < 0.05 ~ "*",
+      TRUE ~ ""
+    )
+  ) |>
+  left_join(segs) |>
+  mutate(
+    gene = ordered(gene, levels = c("NST1", unique(gene)[unique(gene) != "NST1"]))
+  )
+```
+
+
+Fligner-Killeen-test *P*-values indicate no violation of the homoscedascity assumption.
+
+#### Plot data by category
+
+```{r}
+expr_other_supp <- ggplot(
+  expr_other,
+  aes(
+    x = gene,
+    y = value,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median",
+    position = position_dodge(width = 0.9)
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21,
+    size = 1,
+    stroke = 0.3,
+    dodge.width = 0.9,
+    key_glyph = "rect"
+  ) +
+  geom_text(
+    data = pvals,
+    aes(
+      label = code,
+      y = max * 1.5,
+      fill = NULL
+    ),
+    family = "Myriad",
+    size = ggtext_size * 1.3,
+    angle = 90,
+    hjust = 0.5,
+    vjust = 0.5,
+    fontface = "bold",
+    position = position_dodge(width = 0.9)
+  ) +
+  scale_fill_manual(values = pal_zfp[c(1, 2)]) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Relative expression") +
+  theme_leo() +
+  theme(
+    axis.title.y = element_blank(),
+    axis.title.x = element_markdown(),
+    axis.text.y = element_markdown(face = "italic"),
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    axis.ticks.y = element_blank(),
+    legend.position = c(1, 0.4),
+    legend.title = element_blank(),
+    legend.text = element_markdown(),
+    legend.justification = c(1, 0),
+    legend.key.height = unit(2.5, "mm"),
+    legend.key.width = unit(2.5, "mm")
+  ) +
+  ggforce::facet_col(vars(category), scales = "free_y", space = "free") +
+  coord_flip()
+
+expr_other_supp
+```
+
+## Fruit context expression 
+
+### Load data
+
+```{r}
+expr_fruit <- read_xlsx(
+  "ZFP_data.xlsx",
+  12
+) |>
+  fill(gene) |>
+  pivot_longer(
+    -gene,
+    names_to = "genotype",
+    values_to = "value"
+  ) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts[c(1:3)]
+    ),
+  ) |>
+  drop_na() |>
+  arrange(gene, genotype)
+```
+
+### Statistics 
+
+```{r}
+segs <- expr_fruit |>
+  group_by(gene) |>
+  summarise(
+    min = max(value[genotype == "WT"]),
+    max = max(value[genotype != "WT"])
+  )
+
+
+pvals <- expr_fruit |>
+  split(expr_fruit$gene) |>
+  map(\(df) t.test(value ~ genotype, data = df, alternative = "two.sided")) |>
+  map_dfr("p.value") |>
+  pivot_longer(
+    everything(),
+    names_to = "gene",
+    values_to = "value"
+  ) |>
+  mutate(
+    code = case_when(
+      value < 0.001 ~ "***",
+      value < 0.01 ~ "**",
+      value < 0.05 ~ "*",
+      TRUE ~ "n.s."
+    )
+  ) |>
+  left_join(segs)
+```
+
+
+### Plot data
+
+```{r}
+expr_fruit_plot <- ggplot(
+  expr_fruit,
+  aes(
+    x = gene,
+    y = value,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median",
+    position = position_dodge(width = 0.9)
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21,
+    size = 1,
+    stroke = 0.3,
+    dodge.width = 0.9,
+    key_glyph = "rect"
+  ) +
+  geom_text(
+    data = pvals,
+    aes(
+      label = code,
+      y = max,
+      fill = NULL
+    ),
+    vjust = 0,
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp[c(1, 3)]) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    labels = flat_zero
+  ) +
+  labs(y = "Relative expression") +
+  theme_leo() +
+  theme(
+    axis.text.x = element_markdown(face = "italic"),
+    legend.position = c(1, 1),
+    legend.title = element_blank(),
+    legend.text = element_markdown(),
+    legend.justification = c(1, 1),
+    legend.key.height = unit(2.5, "mm"),
+    legend.key.width = unit(2.5, "mm")
+  )
+
+expr_fruit_plot
+```
+
+
+# Luciferase
+
+## Main figure
+
+### Load data
+
+```{r}
+luc_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  8
+) |>
+  fill(experiment, construct) |>
+  mutate(
+    construct = str_replace(construct, "([:digit:]+)-([:digit:]+)", "\\1–\\2"),
+    construct = str_replace(construct, " ([:digit:]+–[:digit:]{3})", "<sup>\\1</sup>"),
+    construct = str_replace(construct, "reporter", "Reporter only"),
+    construct = fct_inorder(construct)
+  ) |>
+  group_by(experiment) |>
+  mutate(relative = relative / median(relative[construct == "Reporter only"])) |>
+  filter(experiment == 2)
+
+luc_data_summary <- luc_data |>
+  group_by(construct) |>
+  tally()
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  luc_data,
+  relative,
+  construct,
+  "kruskal",
+  print_position = "above",
+  print_adjust = 0.4
+)
+
+luc_plot <- ggplot(
+  luc_data,
+  aes(
+    x = construct,
+    y = relative,
+    fill = construct == "Reporter only"
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median"
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21,
+  #   fill = pal_zfp[1]
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp[c(3, 1)]) +
+  labs(y = "Relative luciferase activity") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    breaks = c(0, 0.5, 1, 1.5),
+    labels = flat_zero
+  ) +
+  theme_leo() +
+  theme(
+    axis.title.y = element_blank(),
+    axis.title.x = element_markdown(),
+    axis.ticks.x = element_line(
+      linewidth = 0.4,
+      colour = "black",
+      lineend = "square"
+    ),
+    axis.ticks.y = element_blank(),
+  ) +
+  coord_flip()
+```
+
+## MYB63 supplement
+
+### Load data
+
+```{r}
+luc_myb_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  14
+) |>
+  fill(construct, ZFP2) |>
+  group_by(construct) |>
+  mutate(relative = relative / median(relative[ZFP2 == "no"]))
+```
+
+### Plot data
+
+```{r}
+luc_myb_plot <- function(prom) {
+  data <- luc_myb_data |>
+    filter(construct == prom)
+
+  pval <- kruskal.test(relative ~ ZFP2, data = data)$p.value
+  code <- case_when(
+    pval < 0.001 ~ "***",
+    pval < 0.01 ~ "**",
+    pval < 0.05 ~ "*",
+    TRUE ~ "n.s."
+  )
+
+  max <- max(data$relative)
+
+  ggplot(
+    data,
+    aes(
+      x = ZFP2,
+      y = relative,
+      fill = ZFP2
+    )
+  ) +
+    ## Bar with points
+    stat_summary(
+      geom = "bar",
+      fun = "median"
+    ) +
+    geom_quasirandom(
+      width = 0.1,
+      colour = "white",
+      shape = 21
+    ) +
+    ## Violin and boxplots
+    # geom_violin(colour = NA) +
+    # geom_boxplot(
+    #   width = 0.1,
+    #   fatten = 1,
+    #   colour = "black",
+    #   fill = "white",
+    #   outliers = FALSE
+    # ) +
+    ## Points with crossbar
+    # geom_quasirandom(
+    #   colour = "white",
+    #   shape = 21,
+    #   fill = pal_zfp[1]
+    # ) +
+    # stat_summary(
+    #   geom = "crossbar",
+    #   fun = "median"
+    # ) +
+    annotate(
+      "text",
+      label = code,
+      x = 1.5,
+      y = max,
+      family = "Myriad",
+      size = ggtext_size
+    ) +
+    scale_fill_manual(values = pal_zfp[c(1, 3)]) +
+    labs(
+      y = "Relative luciferase activity",
+      title = paste0("<i>", prom, ":LUC</i>")
+    ) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0, 0.05)),
+      breaks = c(0, 1, 2, 3),
+      limits = c(0, 3)
+    ) +
+    scale_x_discrete(labels = c("Reporter only", "ZFP2")) +
+    theme_leo() +
+    theme(
+      plot.title = element_markdown(hjust = 0.5, size = text_size)
+    )
+}
+
+luc_myb_plot("proSND2") + luc_myb_plot("proMYB63") + plot_layout(axes = "collect", axis_titles = "collect")
+```
+
+## ZFP2-VP16 supplement
+
+### Load data
+
+```{r}
+luc_vp_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  15
+) |>
+  mutate(
+    relative = relative / median(relative[construct == "Reporter only"]),
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  luc_vp_data,
+  relative,
+  construct,
+  "kruskal",
+  print_position = "above",
+  print_adjust = 0.2
+)
+
+luc_vp_plot <- ggplot(
+  luc_vp_data,
+  aes(
+    x = construct,
+    y = relative,
+    fill = construct == "Reporter only"
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median"
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21,
+  #   fill = pal_zfp[1]
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp[c(3, 1)]) +
+  labs(
+    y = "Relative luciferase activity"
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    labels = flat_zero
+  ) +
+  # coord_cartesian(xlim = c(1, 3)) +
+  theme_leo()
+
+
+
+# axis_data <- tibble(
+#   text = rep(c("Reporter", "ZFP2", "ZFP2-VP16"), 3),
+#   pos = rep(c("Reporter only", "ZFP2", "ZFP2-VP16"), each = 3),
+#   label = c("+", "−", "−", "+", "+", "−", "+", "−", "+")
+# ) |>
+#   mutate(text = ordered(text, levels = rev(c("Reporter", "ZFP2", "ZFP2-VP16"))))
+#
+# luc_vp_axis <- ggplot(
+#   axis_data,
+#   aes(y = text, x = pos)
+# ) +
+#   geom_text(
+#     aes(label = label),
+#     family = "Myriad",
+#     size = ggtext_size
+#   ) +
+#   # coord_cartesian(xlim = c(0.6, 3.425)) +
+#   theme_void() +
+#   theme(axis.text.y = element_markdown(
+#     size = text_size,
+#     hjust = 0
+#   ))
+#
+# luc_vp_plot + luc_vp_axis + plot_layout(ncol = 1, heights = c(1, 0.3))
+```
+
+## ZFP2 mutant supplement
+
+### Load data
+
+```{r}
+luc_mut_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  16
+) |>
+  mutate(
+    relative = relative / median(relative[construct == "Reporter only"]),
+    construct = str_replace(construct, "_(.+)", "<sup>\\1</sup>")
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  luc_mut_data,
+  relative,
+  construct,
+  "kruskal",
+  print_position = "above",
+  print_adjust = 0.2
+)
+
+luc_mut_plot <- ggplot(
+  luc_mut_data,
+  aes(
+    x = construct,
+    y = relative,
+    fill = construct == "Reporter only"
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median"
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21,
+  #   fill = pal_zfp[1]
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp[c(3, 1)]) +
+  labs(
+    y = "Relative luciferase activity"
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  # coord_cartesian(xlim = c(1, 3)) +
+  theme_leo()
+
+luc_mut_plot
+```
+
+# Funicle lignification
+
+## Density
+
+### Load data
+
+```{r}
+eSCW <- read_xlsx(
+  "ZFP_data.xlsx",
+  10
+) |>
+  mutate(
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+
+eSCW_density <- eSCW |>
+  # mutate(min_total = min(total)) |>
+  # filter(distance < min_total) |>
+  group_by(genotype, replicate) |>
+  summarise(
+    n = n(),
+    total = unique(total)
+  ) |>
+  mutate(
+    density = (n / total) * 2
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  eSCW_density,
+  density,
+  genotype,
+  "kruskal",
+  print_position = "above"
+)
+
+eSCW_density_plot <- ggplot(
+  eSCW_density,
+  aes(
+    x = genotype,
+    y = density,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  stat_summary(
+    geom = "bar",
+    fun = "median"
+  ) +
+  geom_quasirandom(
+    width = 0.1,
+    colour = "white",
+    shape = 21
+  ) +
+  ## Violin and boxplots
+  # geom_violin(colour = NA) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  ## Points with crossbar
+  # geom_quasirandom(
+  #   colour = "white",
+  #   shape = 21
+  # ) +
+  # stat_summary(
+  #   geom = "crossbar",
+  #   fun = "median"
+  # ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    labels = flat_zero
+  ) +
+  labs(y = "Ectopic SCW (cells µm<sup>−1</sup>)") +
+  theme_leo()
+
+eSCW_density_plot
+```
+
+## Cell length
+
+### Load data
+
+```{r}
+#### Loading MorpholibJ output (not necessary when loading from ZFP_data.xlsx) ####
+# cell_files <- list.files(
+#     path = c(
+#       paste0(
+#         datapath,
+#         "2023_zfp2/Silique_imaging/whole_mount/2023-11_SP5X/2023-12_plantseg/PreProcessing/generic_confocal_3D_unet/GASP/PostProcessing/MorpholibJ_output"
+#       ),
+#       paste0(
+#         datapath,
+#         "2023_zfp2/Silique_imaging/whole_mount/2023-12_SP5X/2024-01-08_plantseg/PreProcessing/generic_confocal_3D_unet/GASP/PostProcessing/MorpholibJ_output"
+#       )
+#     ),
+#     pattern = "*.csv",
+#     recursive = FALSE,
+#     full.names = TRUE
+#   )
+#
+# read_plus <- function(flnm) {
+#   read_csv(flnm) |>
+#     mutate(filename = basename(flnm)) |>
+#     select(-c(1, 2)) |>
+#     separate(filename, into = c("genotype", "daf", "replicate", "model"), sep = "_", extra = "merge")
+# }
+#
+# map_dfr(cell_files, read_plus) |>
+#   write_tsv("cell_data.tsv")
+
+cell_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  11
+) |>
+  mutate(
+    diameter = `EllMajRad(Unit)` * 2,
+    genotype = ordered(
+      case_when(
+        genotype != "WT" ~ str_replace(genotype, "(.+)", "<i>\\1</i>"),
+        TRUE ~ genotype
+      ),
+      levels = gts
+    )
+  )
+
+cell_data_avg <- cell_data |>
+  group_by(genotype, daf, replicate) |>
+  summarise(
+    diameter = median(diameter),
+    n = n()
+  )
+```
+
+### Plot data
+
+```{r}
+letters <- letter_groups(
+  cell_data_avg,
+  diameter,
+  genotype,
+  "tukey",
+  print_position = 6
+)
+
+funicle_elongation_plot <- ggplot(
+  cell_data_avg,
+  aes(
+    x = genotype,
+    y = diameter,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "median"
+  # ) +
+  # geom_quasirandom(
+  #   width = 0.1,
+  #   colour = "white",
+  #   shape = 21
+  # ) +
+  ## Violin and boxplots
+  geom_violin(
+    data = cell_data,
+    # colour = "white"
+    colour = NA
+  ) +
+  stat_summary(
+    geom = "crossbar",
+    fun = "median",
+    colour = "white",
+    fatten = 1
+  ) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  # Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21,
+    width = 0.1
+  ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Cortex cell length (µm)") +
+  coord_cartesian(ylim = c(5, 50)) +
+  theme_leo()
+
+
+funicle_elongation_plot
+```
+
+# Acetyl bromide
+
+```{r}
+acbr_data <- read_xlsx(
+  "ZFP_data.xlsx",
+  22
+) |>
+  mutate(
+    rel_lignin = rel_lignin * 100,
+    genotype = ordered(genotype, levels = gts)
+  )
+
+acbr_data_avg <- acbr_data |>
+  group_by(genotype, replicate) |>
+  summarise(
+    rel_lignin = median(rel_lignin),
+    n = n()
+  )
+
+letters <- letter_groups(
+  acbr_data_avg,
+  rel_lignin,
+  genotype,
+  "kruskal",
+  print_position = "above",
+  print_adjust = 2,
+  # print_position = 0.05
+)
+
+acbr_plot <- ggplot(
+  acbr_data_avg,
+  aes(
+    x = genotype,
+    y = rel_lignin,
+    fill = genotype
+  )
+) +
+  ## Bar with points
+  # stat_summary(
+  #   geom = "bar",
+  #   fun = "mean"
+  # ) +
+  # geom_quasirandom(
+  #   width = 0.1,
+  #   colour = "white",
+  #   shape = 21
+  # ) +
+  ## Violin and boxplots
+  geom_violin(
+    data = acbr_data,
+    # colour = "white"
+    colour = NA
+  ) +
+  stat_summary(
+    geom = "crossbar",
+    fun = "median",
+    colour = "white",
+    fatten = 1
+  ) +
+  # geom_boxplot(
+  #   width = 0.1,
+  #   fatten = 1,
+  #   colour = "black",
+  #   fill = "white",
+  #   outliers = FALSE
+  # ) +
+  # Points with crossbar
+  geom_quasirandom(
+    colour = "white",
+    shape = 21,
+    width = 0.1
+  ) +
+  geom_text(
+    data = letters,
+    aes(label = Letters),
+    family = "Myriad",
+    size = ggtext_size
+  ) +
+  scale_fill_manual(values = pal_zfp) +
+  # scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(y = "Stem lignin (weight %)") +
+  # coord_cartesian(ylim = c(5, 50)) +
+  theme_leo()
+
+
+acbr_plot
+```
+
+# Full figures
+
+## Main
+
+### Figure 1
+
+```{r}
+design <- "
+AABBCCDD
+EEEEFFGG
+"
+plot_spacer() +
+  plot_spacer() +
+  sil_length_plot +
+  seed_weight_plot +
+  wrap_elements(full = seed_dim_plot, clip = FALSE, ignore_tag = TRUE) +
+  # seed_dim_plot +
+  seed_oil_plot +
+  gluc_plot("Long chain aliphatic glucosinolates (C6–C8)", "10 seeds from one silique") + labs(y = "Long chain glucosinolates (nmol seed<sup>−1</sup>)") +
+  plot_layout(design = design) +
+  plot_annotation(tag_levels = list(LETTERS[c(5, 6, 8, 9)])) &
+  theme(plot.tag = element_text(size = 9, face = "bold", family = "Myriad"))
+
+ggsave(
+  "Figure1_skeleton.pdf",
+  width = twocol,
+  height = onecol,
+  units = "in"
+)
+```
+
+### Figure 2 
+
+```{r}
+expr_plant_plot + expr_sil_plot +
+  plot_layout(widths = c(0.3, 0.7)) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(size = 9, face = "bold", family = "Myriad"))
+
+ggsave(
+  "Figure2_skeleton.pdf",
+  width = twocol,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure 3
+
+```{r}
+eSCW_density_plot + plot_spacer() + funicle_elongation_plot +
+  plot_layout(widths = c(1, 2, 1)) +
+  plot_annotation(tag_levels = list(c("B", "D"))) &
+  theme(plot.tag = element_text(size = 9, face = "bold", family = "Myriad"))
+
+ggsave(
+  "Figure3_skeleton.pdf",
+  width = twocol,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure 4
+
+```{r}
+design <- "
+AABBB
+AABBB
+AABBB
+AACCC
+"
+expr_other_split + plot_spacer() + luc_plot +
+  plot_layout(design = design) +
+  plot_annotation(tag_levels = list(c("A", "C"))) &
+  theme(plot.tag = element_text(size = 9, face = "bold", family = "Myriad"))
+
+ggsave(
+  "Figure4_skeleton.pdf",
+  width = 4.5,
+  height = 4.2,
+  units = "in"
+)
+
+## Figure 5
+# EMSA
+# ChIP
+```
+
+## Supplement
+
+### Figure S1
+
+```{r}
+seed_count_plot
+
+ggsave(
+  "FigureS1.pdf",
+  width = onecol * 0.6,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure S2
+
+```{r}
+fa_timeline_plot
+
+ggsave(
+  "FigureS2.pdf",
+  width = onecol * 0.6,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure S3
+
+```{r}
+gluc_supp
+
+ggsave(
+  "FigureS3.pdf",
+  width = twocol,
+  height = onecol,
+  units = "in"
+)
+```
+
+### Figure S8
+
+```{r}
+acbr_plot
+
+ggsave(
+  "FigureS8_skeleton.pdf",
+  width = onecol,
+  height = onecol * 0.35,
+  units = "in"
+)
+```
+
+### Figure S9
+
+```{r}
+design <- "
+AAACC
+BBBCC
+"
+
+pca_plot + volcano_plot + go_enrich_plot +
+  plot_layout(design = design) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(size = 9, face = "bold", family = "Myriad"))
+
+ggsave(
+  "FigureS9.pdf",
+  width = twocol,
+  height = onehalfcol
+)
+```
+
+### Figure S10
+
+```{r}
+expr_other_supp
+
+ggsave(
+  "FigureS10.pdf",
+  width = onecol,
+  height = onecol,
+  units = "in"
+)
+```
+
+### Figure S11
+
+```{r}
+expr_fruit_plot
+
+ggsave(
+  "FigureS11.pdf",
+  width = onecol * 0.6,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure S12
+
+```{r}
+luc_myb_plot("proSND2") + luc_myb_plot("proMYB63") + plot_layout(axes = "collect", axis_titles = "collect")
+
+ggsave(
+  "FigureS12_skeleton.pdf",
+  width = onecol,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure S16
+
+```{r}
+luc_vp_plot
+
+ggsave(
+  "FigureS16_skeleton.pdf",
+  width = onecol * 0.6,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+### Figure S17
+
+```{r}
+luc_mut_plot
+
+ggsave(
+  "FigureS17_skeleton.pdf",
+  width = onecol * 0.6,
+  height = onecol * 0.6,
+  units = "in"
+)
+```
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+
