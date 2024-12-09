@@ -3,6 +3,7 @@ Data and code for [add DOI once published].
 
 All source data (*i.e.* analysed data used to create the figures) is available from `ZFP_data.xlsx`. 
 The corresponding R script `2024-04_ZFP2_figures.rmd` loads data directly from this file and expects its sheet order.
+Figure panel 5B has no corresponding code, since it was made by co-authors.
 
 Sheet|Figure panel
 -----|------------
