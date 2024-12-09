@@ -1,4 +1,7 @@
 # ZFP2
+
+[![DOI](https://zenodo.org/badge/900957841.svg)](https://doi.org/10.5281/zenodo.14342515)
+
 Data and code for [add DOI once published].
 
 All source data (*i.e.* analysed data used to create the figures) is available from `ZFP_data.xlsx`. 
