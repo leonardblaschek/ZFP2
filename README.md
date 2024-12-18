@@ -6,7 +6,7 @@ Data and code for [add DOI once published].
 
 Almost all source data (*i.e.* analysed data used to create the figures) is available from `ZFP_data.xlsx`. 
 The exceptions are the phylogenetic tree in Figure S5D (`ZFO_newick.nwk`) and the silique expression data taken from Khan et al., 2015 (paper:<https://doi.org/10.1111/tpj.12790>; data:<https://onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Ftpj.12790&file=tpj12790-sup-0006-DatasetS1.xlsx>).
-The corresponding R script `2024-04_ZFP2_figures.rmd` loads data directly from these files and expects their names sheet orders.
+The corresponding R script `2024-04_ZFP2_figures.rmd` loads data directly from the two excel files and expects their names sheet orders.
 Figure panel 5B has no corresponding code, since it was made by co-authors.
 
 Sheet|Figure panel

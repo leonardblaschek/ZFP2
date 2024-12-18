@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(
   warning = FALSE, message = FALSE
 )
-suppressMessages(library(ggtree))
 suppressMessages(library(signs))
 suppressMessages(library(readxl))
 suppressMessages(library(showtext))
@@ -2124,77 +2123,6 @@ funicle_elongation_plot <- ggplot(
 funicle_elongation_plot
 ```
 
-# Phylogenic tree
-
-```{r}
-tree <- read.tree("ZFO_newick.nwk")
-tree$tip.label <- str_remove_all(tree$tip.label, "'")
-tree$node.label <- round(as.numeric(tree$node.label) * 100, digits = 0)
-
-tree_plot <- ggtree(tree, layout = "circular", linewidth = 0.4) +
-  geom_tiplab(
-    size = ggtext_size * 0.75,
-    aes(
-      color = ifelse(label == "AT5G57520 (ZFP2)", pal_zfp[3], "black"),
-      angle = angle
-      )
-  ) +
-  geom_nodelab(
-    geom = "text",
-    size = ggtext_size * 0.75,
-    hjust = 0.5,
-    vjust = 0.5,
-    nudge_x = 0.02
-  ) +
-  geom_cladelab(
-    node = 39,
-    angle = "auto",
-    offset = 0.3,
-    offset.text = -0.05,
-    horizontal = FALSE,
-    hjust = 0,
-    vjust = 0.5,
-    label = "Group IV",
-    fontsize = ggtext_size * 0.75
-    ) +
-  geom_cladelab(
-    node = 16,
-    angle = "auto",
-    offset = 0.3,
-    offset.text = -0.05,
-    horizontal = FALSE,
-    hjust = 0.5,
-    vjust = 0.5,
-    label = "Group III",
-    fontsize = ggtext_size * 0.75
-    ) +
-  geom_cladelab(
-    node = 34,
-    angle = "auto",
-    offset = 0.3,
-    offset.text = -0.05,
-    horizontal = FALSE,
-    hjust = 0.5,
-    vjust = 0.5,
-    label = "Group II",
-    fontsize = ggtext_size * 0.75
-    ) +
-  geom_cladelab(
-    node = 26,
-    angle = "auto",
-    offset = 0.3,
-    offset.text = -0.05,
-    horizontal = FALSE,
-    hjust = 0,
-    vjust = 0.5,
-    label = "Group I",
-    fontsize = ggtext_size * 0.75
-    ) +
-  scale_colour_identity()
-
-tree_plot
-```
-
 
 # Acetyl bromide
 
@@ -2410,9 +2338,9 @@ ggsave(
 
 ```{r}
 design <- "
-ABEEEEE
-CCEEEEE
-DD#####
+AB
+CC
+DD
 "
 
 luc_myb_plot("proSND2") + 
@@ -2420,13 +2348,12 @@ luc_myb_plot("proSND2") +
   plot_layout(axes = "collect", axis_titles = "collect_y") +
   luc_vp_plot + 
   luc_mut_plot +
-  free(tree_plot) +
   plot_layout(design = design) 
 
 ggsave(
   "FigureS5_skeleton.pdf",
-  width = twocol,
-  height = twocol
+  width = onecol * 0.5,
+  height = onehalfcol
 )
 ```
 
