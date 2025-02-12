@@ -2,10 +2,10 @@
 
 [![DOI](https://zenodo.org/badge/900957841.svg)](https://doi.org/10.5281/zenodo.14342515)
 
-Data and code for [add DOI once published].
+Data and code for Low, Kong & Blaschek et al. (2025). *Developmental Cell.* DOI: [10.1016/j.devcel.2025.01.021](https://doi.org/10.1016/j.devcel.2025.01.021).
 
 Almost all source data (*i.e.* analysed data used to create the figures) is available from `ZFP_data.xlsx`. 
-The exceptions are the phylogenetic tree in Figure S5D (`ZFO_newick.nwk`) and the silique expression data taken from Khan et al., 2015 (paper:<https://doi.org/10.1111/tpj.12790>; data:<https://onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Ftpj.12790&file=tpj12790-sup-0006-DatasetS1.xlsx>).
+The exceptions are the phylogenetic tree in Figure S5D (`ZFO_newick.nwk`) and the silique expression data taken from Khan et al., 2015 ([paper](https://doi.org/10.1111/tpj.12790) & [data](https://onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Ftpj.12790&file=tpj12790-sup-0006-DatasetS1.xlsx)).
 The corresponding R script `2024-04_ZFP2_figures.rmd` loads data directly from the two excel files and expects their names sheet orders.
 Figure panel 5B has no corresponding code, since it was made by co-authors.
 
